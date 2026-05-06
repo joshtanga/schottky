@@ -1,0 +1,19 @@
+---
+title: "Schottky Groups"
+---
+
+::: {.panel-tabset}
+
+## Limit Sets
+
+::: {#fig-orgin}
+![](quasi-fuchsian-limit-set-9.svg){fig-alt="schottky orbit" width=90%}
+Orbit of four schottky circles under the action of a Schottky group.
+:::
+
+::: {#fig-limitset}
+![](schottky_ultra_res_mc_large.png){fig-alt="quasi fuchsian limit set" width=90%}
+Limit set of a Schottky group. The limit set is the set of accumulation points of the orbit of a point under the group action. It is a fractal set that can be visualized as a subset of the Riemann sphere.
+
+You need to zoom in to see details.
+:::

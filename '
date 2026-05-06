@@ -1,0 +1,142 @@
+# returns a function that performs reflection about a center and radius
+
+import numpy as np
+
+def reflection_about(c, r):
+    """
+    Returns a function that performs reflection about a center and radius.
+    
+    Parameters:
+    c: complex - center of the circle defining the reflection
+    r: float - radius of the circle defining the reflection
+    
+    Returns:
+    A function that takes a numpy array of complex numbers and returns their images under the reflection.
+    """
+    
+    def reflect(z):
+        """Applies the reflection to an array of complex numbers."""
+        z = np.asarray(z, dtype=complex)
+        return c + (r**2 * (z - c)) / np.abs(z - c)**2
+
+    return reflect
+
+# numpy arrays of complex numbers and return the image of that
+# array under a midline inversion defined by two circles.
+#
+# the first circle is the one being inverted, and the second circle defines the midline about which the inversion is performed.
+
+def midline_reflection(c1, c2):
+    """
+    Returns a function that reflects points across the 
+    perpendicular bisector of c1 and c2.
+    """
+    midpoint = (c1 + c2) / 2
+    # The term (c2 - c1) / conj(c2 - c1) represents the 
+    # rotation required after the conjugation.
+    rotation = -(c2 - c1) / np.conj(c2 - c1)
+    
+    def reflect(z):
+        z = np.asarray(z, dtype=complex)
+        return midpoint + rotation * (np.conj(z) - np.conj(midpoint))
+            
+    return reflect
+
+
+def midline_inversion(c1, c2, r):
+    """
+    Returns a function that performs midline inversion defined by two circles.
+    
+    Parameters:
+    c1: complex - center of the first circle (the one being inverted)
+    c2: complex - center of the second circle (the midline)
+    r: float - radius of the first circle
+    
+    Returns:
+    A function that takes a numpy array of complex numbers and returns their images under the midline inversion.
+    """
+    
+    # Calculate the transformation matrix for the midline inversion
+    M = np.array([[c2/r, (r**2 - c1*c2)/r], [1/r, -c1/r]], dtype=complex)
+
+    def mid_inv(z):
+        """Applies the transformation to an array of complex numbers."""
+        z = np.asarray(z, dtype=complex)
+        # CONJUGATE z here to make this an orientation-reversing inversion
+        z_conj = np.conj(z)
+    
+        numerator = M[0, 0] * z_conj + M[0, 1]
+        denominator = M[1, 0] * z_conj + M[1, 1]
+        return numerator / denominator
+    
+    return mid_inv 
+
+# simple inverstion about the first circle
+def simple_inversion(c, r):
+    def inv(z):
+        z = np.asarray(z, dtype=complex)
+        return c + (r**2 * (z - c)) / np.abs(z - c)**2
+    return inv
+
+
+# the identity transformation
+def identity(z):
+    return z
+
+# compose midline inversion with the simple inversion to get a new transformation
+def compose(f, g):
+    def composed(z):
+        return f(g(z))
+    return composed
+
+# This function computes the generator map and its inverse for a given pair of circles and their radii.
+def get_generator(c_pair, r_pair):
+    p, q = c_pair
+    r, s = r_pair
+
+    if r != s:
+        # Hyperbolic/Circular inversion logic
+        C = p + (r * (q - p)) / (r - s)
+        R = np.sqrt((r * s * np.abs(q - p)**2) / ((r - s)**2) - r * s)
+        mid_inv = reflection_about(C, R)
+    else:
+        # Euclidean/Midline symmetry logic
+        mid_inv = midline_reflection(p, q)
+
+    basic_inv = simple_inversion(p, r)
+
+    # Return both the map and its inverse
+    return compose(mid_inv, basic_inv), compose(basic_inv, mid_inv)
+
+import random
+
+def get_monte_carlo_schottky(gen_maps, num_points=5_000_000, burn_in=500):
+    # Start at any center
+    current_pt = centers[0]
+    points = np.zeros((num_points, 2))
+
+    # List of map names for random selection
+    names = list(gen_maps.keys())
+
+    # 1. Burn-in phase (to reach the attractor)
+    for _ in range(burn_in):
+        f = gen_maps[random.choice(names)]
+        current_pt = f(current_pt)
+
+    # 2. Collection phase
+    for i in range(num_points):
+        # Pick a random generator
+        # Note: In some groups, you should avoid picking the inverse
+        # of the last move, but for random iteration, the attractor
+        # usually handles this naturally.
+        f = gen_maps[random.choice(names)]
+        current_pt = f(current_pt)
+
+        points[i, 0] = current_pt.real
+        points[i, 1] = current_pt.imag
+
+    return points
+
+# Execute
+#mc_points = get_monte_carlo_schottky(gen_map_f, num_points=10_000_000)
+#df_mc = pd.DataFrame(mc_points, columns=['x', 'y'])
